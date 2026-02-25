@@ -1,51 +1,60 @@
-import { books } from '../data/books.js';
+//import { books } from '../data/books.js';
+import Book from "../models/books.model.js";
 
 // GET /api/books
-export const getAll = (req, res) => {
-  let results = [...books];
+export const getAll = async (req, res) => {
+  let results;
   const { id, title, author, year, pages } = req.query;
 
-  if(author) {
-    results = results.filter(b => b.author === author)
-  } 
-  if(year && results) {
-    results = results.filter(b => b.year === parseInt(year))
-  } 
-  if(pages && results) {
-    results = results.filter(b => b.pages === parseInt(pages))
-  } 
+  // results = [...books];
+  // if(author) {
+  //   results = results.filter(b => b.author === author)
+  // } 
+  // if(year && results) {
+  //   results = results.filter(b => b.year === parseInt(year))
+  // } 
+  // if(pages && results) {
+  //   results = results.filter(b => b.pages === parseInt(pages))
+  // } 
+
+  const filter = { author };
+
+  if(!isNaN(year)) {
+    filter.year = year;
+  }
+  if(!isNaN(pages)) {
+    filter.pages = pages
+  }
+
+  results = await Book.find(filter);   
   
-  if(!results) {
+  if(!results || results.length === 0) {
     res.status(404).json({ error: 'No correspondances' });
   }
   res.json(results);
 };
 
 // GET /api/books/:id
-export const getById = (req, res) => {
-  const id = parseInt(req.params.id);
-  const book = books.find(b => b.id === id);
+export const getById = async (req, res) => {
+  const id = req.params.id;
+  //const book = books.find(b => b.id === id);
 
-  if(!book) {
+  const results = await Book.find({id:id});
+
+  if(!results || results.length === 0) {
     res.status(404).json({ error: 'Book not found' });
   }
-  
-  res.json(book);
+  res.json(results[0]);
 };
 
 // POST /api/books
-export const post = (req, res) => {
+export const post = async (req, res) => {
   const { id, title, author, year, pages } = req.body;
 
-  const newBook = {
-    id: id,
-    title: title,
-    author: author,
-    year: parseInt(year),
-    pages: parseInt(pages)
-  }
+  // const newBook = { id: id, title: title, author: author, year: parseInt(year), pages: parseInt(pages) }
+  // books.push(newBook)
 
-  books.push(newBook)
+  const newBook = await Book.create({ id: id, title: title, authors: author, year: year, pages: pages });
   
   res.status(201).json(newBook);
 };
