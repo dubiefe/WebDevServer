@@ -22,8 +22,8 @@ app.get('/health', (req, res) => {
   });
 });
 
-// Rutas de la API
-app.use('/api/books', routes);
+// API routes
+app.use('/api/movies', routes);
 
 const PORT = process.env.PORT || 3000;
 
