@@ -1,12 +1,6 @@
 //import { books } from '../data/books.js';
 import Movie from "../models/movies.model.js";
 
-//  GET    | /api/movies            | List movies (filter: `?genre=comedy`) |
-// | GET    | /api/movies/:id        | Get movie from ID                     |
-// | POST   | /api/movies            | Create new movie                      |
-// | PUT    | /api/movies/:id        | Update movie                          |
-// | DELETE | /api/movies/:id        | Delete movie                          |
-
 // GET /api/movies
 export const getAll = async (req, res) => {
   let results;
@@ -33,7 +27,11 @@ export const getByID = async (req, res) => {
     
     try {
         const movie = await Movie.findById(id);
-        res.json(movie);
+        if (movie) {
+          res.json(movie);
+        } else {
+          res.status(404).json({ error: 'Movie not found' });
+        }
     } catch {
         res.status(404).json({ error: 'Movie not found' });
     }
@@ -50,7 +48,7 @@ export const post = async (req, res) => {
 
 // PUT /api/movie/:id
 export const put = async (req, res) => {
-  const id = parseInt(req.params.id);
+  const id = req.params.id;
   
   try {
     const { title, director, year, genre, copies, availableCopies, timesRented, cover } = req.body;
@@ -59,6 +57,24 @@ export const put = async (req, res) => {
 
     res.status(200).json({ message: 'Movie n°' + id + ' fully updated', content: updatedMovie });
   } catch (e) {
-    res.status(404).json({ error: 'Movie not found' + e.message });
+    res.status(404).json({ error: 'Movie not found'});
   }
 }
+
+// DELETE /api/movies/:id 
+export const deleteMovie = async (req, res) => {
+  const id = req.params.id;
+
+  try {
+    const deletedMovie = await Movie.findByIdAndDelete(id);
+    res.status(200).json({ message: 'Movie ' + id + ' deleted', content: deletedMovie });
+  } catch {
+    res.status(404).json({ error: 'Movie not found'});
+  }
+}
+
+// | POST   | /api/movies/:id/rent   | Rent movie                            |
+// | POST   | /api/movies/:id/return | Return movie                          |
+// | PATCH  | /api/movies/:id/cover  | Upload / Replace cover (multipart)    |
+// | GET    | /api/movies/:id/cover  | Get image from the cover              |
+// | GET    | /api/movies/stats/top  | Top 5 most rented                     |
