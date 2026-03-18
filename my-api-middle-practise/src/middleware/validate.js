@@ -1,4 +1,4 @@
-// src/middleware/validateRequest.js
+// src/middleware/validate.js
 import { ZodError } from 'zod';
 
 export const validate = (schema) => async (req, res, next) => {
