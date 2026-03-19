@@ -6,7 +6,7 @@ import { verifyAccessToken } from '../utils/handleJwt.js';
  * Middleware de autenticación
  * Verifica el token JWT y añade el usuario a req.user
  */
-const authMiddleware = async (req, res, next) => {
+export const authMiddleware = async (req, res, next) => {
   try {
     // Check authorization in header
     if (!req.headers.authorization) {
@@ -38,5 +38,3 @@ const authMiddleware = async (req, res, next) => {
     return res.status(401).json({ error: 'NOT_SESSION' });
   }
 };
-
-export default authMiddleware;

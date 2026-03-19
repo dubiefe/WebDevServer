@@ -45,8 +45,9 @@ const userSchema = new mongoose.Schema(
     },
     verificationAttempts: {
       type: Number,
-      default: 0,
-      max: [3, 'Too many failed attempts']
+      default: 3,
+      max: [3],
+      min: [0, 'Too many failed attempts']
     },
     company: {
       type: mongoose.Schema.Types.ObjectId,

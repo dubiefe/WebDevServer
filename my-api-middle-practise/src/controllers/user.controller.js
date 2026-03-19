@@ -1,13 +1,13 @@
 // src/controllers/auth.controller.js
 import User from '../models/user.model.js';
+import Address from '../models/address.model.js';
 import RefreshToken from '../models/refreshToken.model.js';
 import { encrypt, compare } from '../utils/handlePassword.js';
 import { generateAccessToken, generateRefreshToken, getRefreshTokenExpiry } from '../utils/handleJwt.js';
 import { handleHttpError } from '../middleware/error.middleware.js';
 
-/**
- * POST /api/auth/register
- */
+
+// 1) POST /api/auth/register
 export const register = async (req, res) => {
   try {
     // Check if email exists
@@ -19,9 +19,23 @@ export const register = async (req, res) => {
     
     // Encrypt password
     const password = await encrypt(req.body.password)
+    // Save the address
+    // Check if the address exists
+    let address = await Address.findOne({
+      street: req.body.address.street,
+      number: req.body.address.number,
+      postal: req.body.address.postal,
+      city: req.body.address.city,
+      province: req.body.address.province
+    });
+
+    // If the address doesn't exists, we create it
+    if (!address) {
+      address = await Address.create(req.body.address);
+    }
     
     // Create a user with the hash password
-    const body = { ...req.body, password };
+    const body = { ...req.body, password, address: address._id };
     const dataUser = await User.create(body);
     
     // Hide password in the response
@@ -30,8 +44,6 @@ export const register = async (req, res) => {
     // Generate token
     const accessToken = generateAccessToken(dataUser);
     const refreshToken = generateRefreshToken();
-
-    // Guardar refresh token en BD
     await RefreshToken.create({
       token: refreshToken,
       user: dataUser._id,
@@ -53,38 +65,112 @@ export const register = async (req, res) => {
   }
 };
 
-/**
- * POST /api/auth/login
- */
-// export const login = async (req, res) => {
-//   try {
-//     const { email, password } = req.body;
-    
-//     // Search for the correct user
-//     const user = await User.findOne({ email });
-//     if (!user) {
-//         return res.status(404).json({ error: 'USER_NOT_EXISTS' });
-//     }
-    
-//     // Compare passwords
-//     const hashPassword = user.password;
-//     const check = await compare(password, hashPassword);
-//     if (!check) {
-//         return res.status(401).json({ error: 'INVALID_PASSWORD' });
-//     }
-    
-//     // Hide password in the response
-//     user.set('password', undefined, { strict: false });
-    
-//     // Generate token and answer
-//     const data = {
-//       token: generateAcessToken(user._id),
-//       user
-//     };
-    
-//     return res.send(data);
+// 2) PUT /api/user/validation
+export const emailValidation = async(req, res) => {
+  try {
+    const user = req.user;
+    const code = req.body.verificationCode
 
-//   } catch (err) {
-//     return res.status(401).json({ error: 'ERROR_LOGIN_USER' });
+    if(user.verificationCode == code) {
+      const result = await User.findByIdAndUpdate(user._id, {status:"verified", verificationAttempts:3}, { new: true });
+      res.status(201).json({ message: "Email validated" });
+    } else {
+      if(user.verificationAttempts == 0) {
+        handleHttpError(res, 'TOO_MANY_REQUESTS', 429);
+        return
+      } else {
+        const result = await User.findByIdAndUpdate(user._id, {$inc : {'verificationAttempts' : -1}}, { new: true });
+        handleHttpError(res, 'INCORRECT_CODE', 400);
+        return
+      }
+    }
+    
+  } catch (error) {
+    handleHttpError(res, 'ERROR_VALIDATION_EMAIL', 409);
+    return;
+  }
+}
+
+// 3) POST /api/auth/login
+export const login = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    
+    // Search for the correct user
+    const user = await User.findOne({ email });
+    if (!user) {
+        return res.status(404).json({ error: 'USER_NOT_EXISTS' });
+    }
+    
+    // Compare passwords
+    const hashPassword = user.password;
+    const check = await compare(password, hashPassword);
+    if (!check) {
+        return res.status(401).json({ error: 'UNAUTHORIZED_CONNECTION' });
+    }
+    
+    // Hide password in the response
+    user.set('password', undefined, { strict: false });
+    
+    // Generate token
+    const accessToken = generateAccessToken(user);
+    const refreshToken = generateRefreshToken();
+    await RefreshToken.create({
+      token: refreshToken,
+      user: user._id,
+      expiresAt: getRefreshTokenExpiry(),
+      createdByIp: req.ip
+    });
+
+    const data = {
+      accessToken: accessToken,
+      refreshToken: refreshToken,
+      user
+    };
+    
+    return res.status(201).send(data);
+
+  } catch (err) {
+    return res.status(401).json({ error: 'ERROR_LOGIN_USER' });
+  }
+};
+
+// ### 4) Onboarding — Personal and company data
+
+// **Company data** — `PATCH /api/user/company` (1 point):
+// - Requires JWT token.
+// - Validate the data (name, tax ID, address, `isFreelance`) with **Zod**.
+// - **Assignment logic according to the tax ID number:**
+//   - If there is no company with that tax ID number → a new Company document is created, the user is assigned as owner and retains their admin role.
+//   - If a company with that tax ID number already exists → the user joins that existing company and their role changes to guest.
+// - If the user indicates that they are self-employed (isFreelance: true), the company's CIF will be their own NIF and the company's details will be automatically filled in with their personal details (name, NIF, address).
+
+// 4) PUT /api/user/register
+export const onboardingPersonalData = async(req, res) => {
+  try {
+    const user = req.user;
+
+    const updatedUser = await User.findByIdAndUpdate(user._id, req.body, { new: true });
+
+    res.status(200).json({ message: 'Personal data updated', content: updatedUser });
+    
+  } catch (error) {
+    handleHttpError(res, 'ERROR_ONBOARDING_PERSONAL_DATA', 409);
+    return;
+  }
+}
+
+// // 4) PUT /api/user/company
+// export const onboardingCompanyData = async(req, res) => {
+//   try {
+//     const user = req.user;
+
+//     const updatedUser = await User.findByIdAndUpdate(user._id, req.body, { new: true });
+
+//     res.status(200).json({ message: 'Personal data updated', content: updatedUser });
+    
+//   } catch (error) {
+//     handleHttpError(res, 'ERROR_ONBOARDING_COMPANY_DATA', 409);
+//     return;
 //   }
-// };
+// }
