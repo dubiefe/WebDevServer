@@ -220,3 +220,18 @@ export const addCompanyLogo = async(req, res) => {
     return;
   }
 }
+
+// 6) GET /api/user
+export const getUser = async(req, res) => {
+  try {
+    const user = req.user
+    
+    const fullUser = await User.findById(user._id).populate('company').populate('address')
+
+    res.status(200).json(fullUser.toObject({ virtuals: true }));
+    
+  } catch (error) {
+    handleHttpError(res, 'ERROR_GETTING_USER', 409);
+    return;
+  }
+}

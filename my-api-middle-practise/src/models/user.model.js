@@ -1,8 +1,6 @@
 // src/models/user.model.js
 import mongoose from 'mongoose';
 
-const opts = { toJSON: { virtuals: true } };
-
 const userSchema = new mongoose.Schema(
   {
     email: {
@@ -73,9 +71,9 @@ const userSchema = new mongoose.Schema(
   },
   {
     timestamps: true,   
-    versionKey: false   
+    versionKey: false,
+    toJSON: { virtuals: true }   
   },
-  opts
 );
 
 userSchema.virtual('fullName').get(function() {

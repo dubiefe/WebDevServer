@@ -83,4 +83,6 @@ router.patch('/company', authMiddleware, validate(createCompanySchema), userCont
 
 router.patch('/logo', authMiddleware, uploadMiddleware.single("file"), userController.addCompanyLogo)
 
+router.get('/', authMiddleware, userController.getUser)
+
 export default router;
