@@ -3,6 +3,7 @@ import { Router } from 'express';
 import * as userController from '../controllers/user.controller.js';
 import { validate } from '../middleware/validate.js';
 import { createUserSchema, loginSchema, emailValidationSchema, updateUserSchema } from '../schemas/user.schema.js';
+import { createCompanySchema } from '../schemas/company.schema.js';
 import { authMiddleware } from '../middleware/auth.middleware.js';
 
 const router = Router();
@@ -76,5 +77,7 @@ router.put('/validation', authMiddleware, validate(emailValidationSchema), userC
 router.post('/login', validate(loginSchema), userController.login)
 
 router.put('/register', authMiddleware, validate(updateUserSchema), userController.onboardingPersonalData)
+
+router.patch('/company', authMiddleware, validate(createCompanySchema), userController.onboardingCompanyData)
 
 export default router;

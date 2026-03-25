@@ -1,5 +1,6 @@
 // src/controllers/auth.controller.js
 import User from '../models/user.model.js';
+import Company from '../models/company.model.js';
 import Address from '../models/address.model.js';
 import RefreshToken from '../models/refreshToken.model.js';
 import { encrypt, compare } from '../utils/handlePassword.js';
@@ -135,16 +136,6 @@ export const login = async (req, res) => {
   }
 };
 
-// ### 4) Onboarding — Personal and company data
-
-// **Company data** — `PATCH /api/user/company` (1 point):
-// - Requires JWT token.
-// - Validate the data (name, tax ID, address, `isFreelance`) with **Zod**.
-// - **Assignment logic according to the tax ID number:**
-//   - If there is no company with that tax ID number → a new Company document is created, the user is assigned as owner and retains their admin role.
-//   - If a company with that tax ID number already exists → the user joins that existing company and their role changes to guest.
-// - If the user indicates that they are self-employed (isFreelance: true), the company's CIF will be their own NIF and the company's details will be automatically filled in with their personal details (name, NIF, address).
-
 // 4) PUT /api/user/register
 export const onboardingPersonalData = async(req, res) => {
   try {
@@ -160,17 +151,38 @@ export const onboardingPersonalData = async(req, res) => {
   }
 }
 
-// // 4) PUT /api/user/company
-// export const onboardingCompanyData = async(req, res) => {
-//   try {
-//     const user = req.user;
-
-//     const updatedUser = await User.findByIdAndUpdate(user._id, req.body, { new: true });
-
-//     res.status(200).json({ message: 'Personal data updated', content: updatedUser });
+// 4) PUT /api/user/company
+export const onboardingCompanyData = async(req, res) => {
+  try {
+    const user = req.user;
+    const company = await Company.findOne({ cif:req.body.cif })
     
-//   } catch (error) {
-//     handleHttpError(res, 'ERROR_ONBOARDING_COMPANY_DATA', 409);
-//     return;
-//   }
-// }
+    if(company) { // company already exists
+      const updatedUser = await User.findByIdAndUpdate(user._id, {company:company._id, role:"guest"}, { new: true });
+      res.status(200).json({ message: 'User added to company', content: updatedUser });
+    } else { // create the company
+      if(req.body.isFreelance) { // Create company with user data
+        const newCompany = await Company.create({owner:user._id, name:req.body.name, cif:user.nif, address:user.address, isFreelance:true})
+        const updatedUser = await User.findByIdAndUpdate(user._id, {company:newCompany._id, role:"admin"}, { new: true });
+        res.status(200).json({ message: 'Company data created in Freelance', content: {updatedUser, newCompany} });
+      } else { // Create company with user as owner
+        // Check address
+        let address = await Address.findOne({
+          street: req.body.address.street,
+          number: req.body.address.number,
+          postal: req.body.address.postal,
+          city: req.body.address.city,
+          province: req.body.address.province
+        });
+        if (!address) { address = await Address.create(req.body.address); }
+        const newCompany = await Company.create({owner:user._id, name:req.body.name, cif:req.body.cif, address:address._id, isFreelance:false})
+        const updatedUser = await User.findByIdAndUpdate(user._id, {company:newCompany._id, role:"admin"}, { new: true });
+        res.status(200).json({ message: 'Company data created', content: {updatedUser, newCompany} });
+      }
+    }
+    
+  } catch (error) {
+    handleHttpError(res, 'ERROR_ONBOARDING_COMPANY_DATA' + error, 409);
+    return;
+  }
+}
