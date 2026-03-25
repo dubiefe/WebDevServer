@@ -2,11 +2,13 @@
 import User from '../models/user.model.js';
 import Company from '../models/company.model.js';
 import Address from '../models/address.model.js';
+import Uploads from '../models/uploads.model.js'
 import RefreshToken from '../models/refreshToken.model.js';
 import { encrypt, compare } from '../utils/handlePassword.js';
 import { generateAccessToken, generateRefreshToken, getRefreshTokenExpiry } from '../utils/handleJwt.js';
 import { handleHttpError } from '../middleware/error.middleware.js';
 
+const PUBLIC_URL = process.env.PUBLIC_URL || "http://localhost:3000";
 
 // 1) POST /api/auth/register
 export const register = async (req, res) => {
@@ -183,6 +185,38 @@ export const onboardingCompanyData = async(req, res) => {
     
   } catch (error) {
     handleHttpError(res, 'ERROR_ONBOARDING_COMPANY_DATA' + error, 409);
+    return;
+  }
+}
+
+// 5) PATCH /api/user/logo
+export const addCompanyLogo = async(req, res) => {
+  try {
+    const user = req.user;
+    if (!user.company) {
+        return res.status(401).json({ error: 'NO_COMPANY_LINKED_TO_USER' });
+    }
+
+    if (!req.file) {
+      return res.status(400).json({ error: "NO_FILE_UPLOADED" });
+    }
+
+    const { filename, originalname, mimetype, size } = req.file;
+
+    const fileData = await Uploads.create({
+      filename,
+      originalName: originalname,
+      url: `${PUBLIC_URL}/uploads/${filename}`,
+      mimetype,
+      size
+    });
+
+    const updatedCompany = await Company.findByIdAndUpdate(user.company, {logo:filename}, { new: true });
+
+    res.status(200).json({ message: 'Company logo uploaded', content: { updatedCompany, storage: fileData} });
+    
+  } catch (error) {
+    handleHttpError(res, 'ERROR_UPLOADING_COMPANY_LOGO' + error, 409);
     return;
   }
 }
