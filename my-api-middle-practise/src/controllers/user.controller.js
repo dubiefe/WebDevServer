@@ -235,3 +235,44 @@ export const getUser = async(req, res) => {
     return;
   }
 }
+
+// 7) POST /api/user/refresh
+export const refreshUserToken = async(req, res) => {
+  try {
+    const { refreshToken } = req.body;
+
+    if (!refreshToken) {
+      return res.status(400).json({ error: true, message: 'MISSING_REFRESH_TOKEN' });
+    }
+
+    const storedToken = await RefreshToken.findOne({ token: refreshToken }).populate('user');
+
+    if (!storedToken || !storedToken.isActive()) {
+      return res.status(401).json({ error: true, message: 'REFRESH_TOKEN_INVALID_OR_EXPIRED' });
+    }
+
+    const accessToken = generateAccessToken(storedToken.user);
+    res.status(200).json({message: "New access token created", accessToken: accessToken});
+      
+  } catch (error) {
+    handleHttpError(res, 'ERROR_GETTING_USER_REFRESH', 409);
+    return;
+  }
+}
+
+// 7) POST /api/user/logout
+export const logout = async(req, res) => {
+  try {
+    const user = req.user
+
+    await RefreshToken.deleteMany(
+      { user: user._id },
+    );
+
+    res.json({ message: 'User logged out' });
+      
+  } catch (error) {
+    handleHttpError(res, 'ERROR_LOGOUT', 409);
+    return;
+  }
+}

@@ -85,4 +85,8 @@ router.patch('/logo', authMiddleware, uploadMiddleware.single("file"), userContr
 
 router.get('/', authMiddleware, userController.getUser)
 
+router.post('/refresh', userController.refreshUserToken)
+
+router.post('/logout', authMiddleware, userController.logout)
+
 export default router;
