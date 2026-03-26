@@ -38,3 +38,12 @@ export const updateUserSchema = z.object({
     nif: z.string().optional(),
   })
 });
+
+export const updateUserPassword = z.object({
+  body: z.object({
+    currentPassword: z.string().min(8),
+    newPassword: z.string().min(8),
+  })
+}).refine(data => data.body.currentPassword != data.body.newPassword, {
+    message: "Passwords must be different."
+});

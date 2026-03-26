@@ -2,7 +2,7 @@
 import { Router } from 'express';
 import * as userController from '../controllers/user.controller.js';
 import { validate } from '../middleware/validate.js';
-import { createUserSchema, loginSchema, emailValidationSchema, updateUserSchema } from '../schemas/user.schema.js';
+import { createUserSchema, loginSchema, emailValidationSchema, updateUserSchema, updateUserPassword } from '../schemas/user.schema.js';
 import { createCompanySchema } from '../schemas/company.schema.js';
 import { authMiddleware } from '../middleware/auth.middleware.js';
 import uploadMiddleware from '../middleware/upload.js';
@@ -90,5 +90,7 @@ router.post('/refresh', userController.refreshUserToken)
 router.post('/logout', authMiddleware, userController.logout)
 
 router.delete('/', authMiddleware, userController.deleteUser)
+
+router.put('/password', authMiddleware, validate(updateUserPassword), userController.changePassword)
 
 export default router;

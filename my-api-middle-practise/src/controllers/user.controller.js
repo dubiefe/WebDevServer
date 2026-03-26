@@ -279,13 +279,6 @@ export const logout = async(req, res) => {
   }
 }
 
-// ### 8) Delete user — `DELETE /api/user` (1 point)
-
-// Technical specifications:
-// - Requires JWT token.
-// - Supports hard or soft delete depending on the query parameter `?soft=true`.
-// - Soft delete uses the logical deletion pattern (T6).
-
 // 8) DELETE /api/user
 export const deleteUser = async(req, res) => {
   try {
@@ -299,6 +292,35 @@ export const deleteUser = async(req, res) => {
       const deletedUser = await User.findByIdAndDelete(user._id);
       res.json({ message: 'User deleted permanently', content: deletedUser });
     }
+      
+  } catch (error) {
+    handleHttpError(res, 'ERROR_DELETE_USER', 409);
+    return;
+  }
+}
+
+// ### 9) Change password — `PUT /api/user/password` (1 point)
+
+// Technical specifications:
+// - Verify that the current password is correct before updating it.
+
+// 9) PUT /api/user/password
+export const changePassword = async(req, res) => {
+  try {
+    const user = req.user
+    const { currentPassword, newPassword } = req.body
+
+    // Check old password
+    const hashPassword = user.password;
+    const check = await compare(currentPassword, hashPassword);
+    if (!check) {
+        return res.status(401).json({ error: 'UNAUTHORIZED_CONNECTION' });
+    }
+
+    const newHashedPassword = await encrypt(newPassword);
+    const updatedUser = await User.findByIdAndUpdate(user._id, {password: newHashedPassword, updatedAt: Date.now()}, { new: true });
+
+    res.json({ message: 'Password updated' });
       
   } catch (error) {
     handleHttpError(res, 'ERROR_DELETE_USER', 409);
