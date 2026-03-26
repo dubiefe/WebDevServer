@@ -89,4 +89,6 @@ router.post('/refresh', userController.refreshUserToken)
 
 router.post('/logout', authMiddleware, userController.logout)
 
+router.delete('/', authMiddleware, userController.deleteUser)
+
 export default router;

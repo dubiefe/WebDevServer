@@ -103,6 +103,8 @@ export const login = async (req, res) => {
     const user = await User.findOne({ email });
     if (!user) {
         return res.status(404).json({ error: 'USER_NOT_EXISTS' });
+    } else if (user.deleted) {
+        return res.status(404).json({ error: 'USER_DELETED' });
     }
     
     // Compare passwords
@@ -143,7 +145,7 @@ export const onboardingPersonalData = async(req, res) => {
   try {
     const user = req.user;
 
-    const updatedUser = await User.findByIdAndUpdate(user._id, req.body, { new: true });
+    const updatedUser = await User.findByIdAndUpdate(user._id, req.body + {updatedAt: Date.now()}, { new: true });
 
     res.status(200).json({ message: 'Personal data updated', content: updatedUser });
     
@@ -160,12 +162,12 @@ export const onboardingCompanyData = async(req, res) => {
     const company = await Company.findOne({ cif:req.body.cif })
     
     if(company) { // company already exists
-      const updatedUser = await User.findByIdAndUpdate(user._id, {company:company._id, role:"guest"}, { new: true });
+      const updatedUser = await User.findByIdAndUpdate(user._id, {company:company._id, role:"guest", updatedAt: Date.now()}, { new: true });
       res.status(200).json({ message: 'User added to company', content: updatedUser });
     } else { // create the company
       if(req.body.isFreelance) { // Create company with user data
         const newCompany = await Company.create({owner:user._id, name:req.body.name, cif:user.nif, address:user.address, isFreelance:true})
-        const updatedUser = await User.findByIdAndUpdate(user._id, {company:newCompany._id, role:"admin"}, { new: true });
+        const updatedUser = await User.findByIdAndUpdate(user._id, {company:newCompany._id, role:"admin", updatedAt: Date.now()}, { new: true });
         res.status(200).json({ message: 'Company data created in Freelance', content: {updatedUser, newCompany} });
       } else { // Create company with user as owner
         // Check address
@@ -178,7 +180,7 @@ export const onboardingCompanyData = async(req, res) => {
         });
         if (!address) { address = await Address.create(req.body.address); }
         const newCompany = await Company.create({owner:user._id, name:req.body.name, cif:req.body.cif, address:address._id, isFreelance:false})
-        const updatedUser = await User.findByIdAndUpdate(user._id, {company:newCompany._id, role:"admin"}, { new: true });
+        const updatedUser = await User.findByIdAndUpdate(user._id, {company:newCompany._id, role:"admin", updatedAt: Date.now()}, { new: true });
         res.status(200).json({ message: 'Company data created', content: {updatedUser, newCompany} });
       }
     }
@@ -211,7 +213,7 @@ export const addCompanyLogo = async(req, res) => {
       size
     });
 
-    const updatedCompany = await Company.findByIdAndUpdate(user.company, {logo:filename}, { new: true });
+    const updatedCompany = await Company.findByIdAndUpdate(user.company, {logo:filename, updatedAt: Date.now()}, { new: true });
 
     res.status(200).json({ message: 'Company logo uploaded', content: { updatedCompany, storage: fileData} });
     
@@ -273,6 +275,33 @@ export const logout = async(req, res) => {
       
   } catch (error) {
     handleHttpError(res, 'ERROR_LOGOUT', 409);
+    return;
+  }
+}
+
+// ### 8) Delete user — `DELETE /api/user` (1 point)
+
+// Technical specifications:
+// - Requires JWT token.
+// - Supports hard or soft delete depending on the query parameter `?soft=true`.
+// - Soft delete uses the logical deletion pattern (T6).
+
+// 8) DELETE /api/user
+export const deleteUser = async(req, res) => {
+  try {
+    const user = req.user
+    const { soft } = req.query;
+
+    if(soft) { // soft delete
+      const deletedUser = await User.findByIdAndUpdate(user._id, {deleted:true});
+      res.json({ message: 'User deleted (soft)', content: deletedUser });
+    } else {
+      const deletedUser = await User.findByIdAndDelete(user._id);
+      res.json({ message: 'User deleted permanently', content: deletedUser });
+    }
+      
+  } catch (error) {
+    handleHttpError(res, 'ERROR_DELETE_USER', 409);
     return;
   }
 }
