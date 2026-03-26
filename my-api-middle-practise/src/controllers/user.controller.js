@@ -299,11 +299,6 @@ export const deleteUser = async(req, res) => {
   }
 }
 
-// ### 9) Change password — `PUT /api/user/password` (1 point)
-
-// Technical specifications:
-// - Verify that the current password is correct before updating it.
-
 // 9) PUT /api/user/password
 export const changePassword = async(req, res) => {
   try {
@@ -322,6 +317,51 @@ export const changePassword = async(req, res) => {
 
     res.json({ message: 'Password updated' });
       
+  } catch (error) {
+    handleHttpError(res, 'ERROR_DELETE_USER', 409);
+    return;
+  }
+}
+
+// TODO - A user:invited event is emitted via EventEmitter (see technical requirements).
+
+// 10) POST /api/user/invite
+export const inviteColleagues = async(req, res) => {
+  try {
+    const user = req.user
+
+    // Check if email exists
+    const existingUser = await User.findOne({ email: req.body.email });
+    if (existingUser) {
+      handleHttpError(res, 'EMAIL_ALREADY_EXISTS', 409);
+      return;
+    }
+    
+    // Encrypt password
+    const password = await encrypt(req.body.password)
+    // Save the address
+    // Check if the address exists
+    let address = await Address.findOne({
+      street: req.body.address.street,
+      number: req.body.address.number,
+      postal: req.body.address.postal,
+      city: req.body.address.city,
+      province: req.body.address.province
+    });
+
+    // If the address doesn't exists, we create it
+    if (!address) {
+      address = await Address.create(req.body.address);
+    }
+    
+    // Create a user with the hash password
+    const body = { ...req.body, password, address: address._id, company:user.company, role:"guest" };
+    const dataUser = await User.create(body);
+    
+    // Hide password in the response
+    dataUser.set('password', undefined, { strict: false });
+      
+    res.json({ message: 'User invited', content: dataUser });
   } catch (error) {
     handleHttpError(res, 'ERROR_DELETE_USER', 409);
     return;

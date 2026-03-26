@@ -1,10 +1,10 @@
-// src/middleware/session.middleware.js
+// src/middleware/auth.middleware.js
 import User from '../models/user.model.js';
 import { verifyAccessToken } from '../utils/handleJwt.js';
 
 /**
- * Middleware de autenticación
- * Verifica el token JWT y añade el usuario a req.user
+ * Authentification Middleware
+ * Check the JWT user token and add the user to a req.user
  */
 export const authMiddleware = async (req, res, next) => {
   try {

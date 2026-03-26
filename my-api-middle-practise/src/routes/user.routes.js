@@ -5,6 +5,7 @@ import { validate } from '../middleware/validate.js';
 import { createUserSchema, loginSchema, emailValidationSchema, updateUserSchema, updateUserPassword } from '../schemas/user.schema.js';
 import { createCompanySchema } from '../schemas/company.schema.js';
 import { authMiddleware } from '../middleware/auth.middleware.js';
+import { adminRoleMiddleware } from '../middleware/role.middleware.js';
 import uploadMiddleware from '../middleware/upload.js';
 
 const router = Router();
@@ -92,5 +93,7 @@ router.post('/logout', authMiddleware, userController.logout)
 router.delete('/', authMiddleware, userController.deleteUser)
 
 router.put('/password', authMiddleware, validate(updateUserPassword), userController.changePassword)
+
+router.post('/invite', authMiddleware, adminRoleMiddleware, userController.inviteColleagues)
 
 export default router;
