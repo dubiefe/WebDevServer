@@ -4,6 +4,7 @@ import routes from './routes/index.js';
 import dbConnect from './config/db.js';
 import swaggerUi from 'swagger-ui-express';
 import swaggerSpecs from './docs/swagger.js';
+import './services/notification.service.js';
 
 const app = express();
 

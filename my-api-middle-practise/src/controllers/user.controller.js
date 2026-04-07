@@ -7,6 +7,7 @@ import RefreshToken from '../models/refreshToken.model.js';
 import { encrypt, compare } from '../utils/handlePassword.js';
 import { generateAccessToken, generateRefreshToken, getRefreshTokenExpiry } from '../utils/handleJwt.js';
 import { handleHttpError } from '../middleware/error.middleware.js';
+import { emitUserInvited } from '../services/notification.service.js';
 
 const PUBLIC_URL = process.env.PUBLIC_URL || "http://localhost:3000";
 
@@ -360,6 +361,12 @@ export const inviteColleagues = async(req, res) => {
     
     // Hide password in the response
     dataUser.set('password', undefined, { strict: false });
+
+    // Event emitter
+    emitUserInvited({
+      invitedUser: dataUser,
+      invitedBy: user
+    });
       
     res.json({ message: 'User invited', content: dataUser });
   } catch (error) {
