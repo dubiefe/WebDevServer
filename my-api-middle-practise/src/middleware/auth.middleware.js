@@ -1,5 +1,6 @@
 // src/middleware/auth.middleware.js
 import User from '../models/user.model.js';
+import { emitUserVerified } from '../services/notification.service.js';
 import { verifyAccessToken } from '../utils/handleJwt.js';
 
 /**
@@ -30,6 +31,11 @@ export const authMiddleware = async (req, res, next) => {
         return res.status(401).json({ error: 'USER_NOT_FOUND' });
     }
     
+    // Event emitter
+    emitUserVerified({
+      user: user
+    });
+
     // Add user in the request
     req.user = user;
     next();

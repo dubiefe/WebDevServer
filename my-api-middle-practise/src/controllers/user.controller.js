@@ -7,7 +7,7 @@ import RefreshToken from '../models/refreshToken.model.js';
 import { encrypt, compare } from '../utils/handlePassword.js';
 import { generateAccessToken, generateRefreshToken, getRefreshTokenExpiry } from '../utils/handleJwt.js';
 import { handleHttpError } from '../middleware/error.middleware.js';
-import { emitUserInvited } from '../services/notification.service.js';
+import { emitUserDeleted, emitUserInvited, emitUserRegistered } from '../services/notification.service.js';
 
 const PUBLIC_URL = process.env.PUBLIC_URL || "http://localhost:3000";
 
@@ -53,6 +53,11 @@ export const register = async (req, res) => {
       user: dataUser._id,
       expiresAt: getRefreshTokenExpiry(),
       createdByIp: req.ip
+    });
+
+    // Event emitter
+    emitUserRegistered({
+      user: dataUser
     });
 
     const data = {
@@ -146,7 +151,7 @@ export const onboardingPersonalData = async(req, res) => {
   try {
     const user = req.user;
 
-    const updatedUser = await User.findByIdAndUpdate(user._id, req.body + {updatedAt: Date.now()}, { new: true });
+    const updatedUser = await User.findByIdAndUpdate(user._id, {...req.body, updatedAt: Date.now()}, { new: true });
 
     res.status(200).json({ message: 'Personal data updated', content: updatedUser });
     
@@ -288,9 +293,17 @@ export const deleteUser = async(req, res) => {
 
     if(soft) { // soft delete
       const deletedUser = await User.findByIdAndUpdate(user._id, {deleted:true});
+      // Event emitter
+      emitUserDeleted({
+        user: deletedUser
+      });
       res.json({ message: 'User deleted (soft)', content: deletedUser });
     } else {
       const deletedUser = await User.findByIdAndDelete(user._id);
+      // Event emitter
+      emitUserDeleted({
+        user: deletedUser
+      });
       res.json({ message: 'User deleted permanently', content: deletedUser });
     }
       
