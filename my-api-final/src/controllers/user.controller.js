@@ -337,8 +337,6 @@ export const changePassword = async(req, res) => {
   }
 }
 
-// TODO - A user:invited event is emitted via EventEmitter (see technical requirements).
-
 // 10) POST /api/user/invite
 export const inviteColleagues = async(req, res) => {
   try {
