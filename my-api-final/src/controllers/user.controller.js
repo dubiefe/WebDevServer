@@ -1,4 +1,4 @@
-// src/controllers/auth.controller.js
+// src/controllers/user.controller.js
 import User from '../models/user.model.js';
 import Company from '../models/company.model.js';
 import Address from '../models/address.model.js';

@@ -1,4 +1,4 @@
-// src/routes/cursos.routes.js
+// src/routes/user.routes.js
 import { Router } from 'express';
 import * as userController from '../controllers/user.controller.js';
 import { validate } from '../middleware/validate.js';
