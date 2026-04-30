@@ -42,25 +42,145 @@ export const createClient = async (req, res) => {
     }
 
   } catch (error) {
-    handleHttpError(res, 'ERROR_CREATING_CLIENT' + error, 409);
+    handleHttpError(res, 'ERROR_CREATING_CLIENT', 409);
     return;
   }
 };
 
 // 2) PUT /api/client/:id
+export const updateClient = async(req, res) => {
+  try {
+    const user = req.user;
+    const client_id = req.params.id;
+
+    const updatedClient = await Client.findByIdAndUpdate(client_id, {...req.body, updatedAt: Date.now()}, { new: true });
+
+    res.status(200).json({ message: 'Client data updated', content: updatedClient });
+    
+  } catch (error) {
+    handleHttpError(res, 'ERROR_UPDATING_CLIENT_DATA', 409);
+    return;
+  }
+}
 
 // 3) GET /api/client
-// - **List** (`GET /api/client`): show clients from the user's company. Implement **pagination** and **filters**:
-//   - Pagination: `?page=1&limit=10` (also return `totalPages`, `totalItems`, `currentPage`).
-//   - Filters: `?name=García` (partial search), `?sort=createdAt` (sorting).
+export const getAllClient = async (req, res) => {
+  try {
+    const user = req.user;
+    const userData = await User.findById(user._id)
+
+    let query;
+
+    const { page, limit, name, sort } = req.query;
+
+    const filter = {company: userData.company, deleted: false};
+    if(name) { filter.name = name; } 
+    query = Client.find(filter)
+
+    if(sort) {
+        query.sort(sort)
+    } 
+
+    let totalPages, totalItems;
+    if(page && limit) {
+        // Search complementary result params
+        totalItems = await Client.countDocuments(filter)
+        totalPages = Math.ceil(totalItems / limit);
+        // Search the result
+        const offset = (page - 1) * limit;
+        query.skip(offset).limit(parseInt(limit))
+    }
+
+    const clients = await query
+
+    if(page && limit) {
+        return res.status(200).json({totalPages: totalPages, totalItems: totalItems, currentPage: page, content: clients});
+    } else {
+        return res.status(200).json(clients);
+    }
+
+  } catch (error) {
+    handleHttpError(res, 'ERROR_GETTING_ALL_CLIENTS', 409);
+    return;
+  }
+};
 
 // 3) GET /api/client/:id
-// - **Get**: return a specific client belonging to the company.
+export const getClient = async (req, res) => {
+  try {
+    const user = req.user;
+    const userData = await User.findById(user._id)
+
+    const client_id = req.params.id;
+
+    const client = await Client.findById(client_id)
+
+    if(client && client.company.equals(userData.company) && !client.deleted) {
+        return res.status(200).json(client);
+    } else if (client && !client.company.equals(userData.company)) {
+        handleHttpError(res, 'CLIENT_NOT_IN_COMPANY', 409);
+        return;
+    } else {
+        handleHttpError(res, 'CLIENT_NOT_FOUND', 404);
+        return;
+    }
+
+  } catch (error) {
+    handleHttpError(res, 'ERROR_GETTING_CLIENT', 409);
+    return;
+  }
+};
 
 // 4) DELETE /api/client/:id
-// - **Delete**: use the query parameter `?soft=true` to choose deletion type.
+export const deleteClient = async(req, res) => {
+  try {
+    const user = req.user
+    const { soft } = req.query;
+
+    const client_id = req.params.id;
+
+    if(soft) { // soft delete
+      const deletedClient = await Client.findByIdAndUpdate(client_id, {deleted:true});
+      res.json({ message: 'Client deleted (soft)', content: deletedClient });
+    } else {
+      const deletedClient = await Client.findByIdAndDelete(client_id);
+      res.json({ message: 'Client deleted permanently', content: deletedClient });
+    }
+      
+  } catch (error) {
+    handleHttpError(res, 'ERROR_DELETE_CLIENT', 409);
+    return;
+  }
+}
 
 // 5) GET /api/client/archived
-// - **Archive/Restore**: list soft-deleted clients and allow recovery.
+export const getAllArchivedClients = async (req, res) => {
+  try {
+    const user = req.user;
+    const userData = await User.findById(user._id)
+
+    const clients = await Client.find({company: userData.company, deleted: true})
+
+    return res.status(200).json(clients);
+
+  } catch (error) {
+    handleHttpError(res, 'ERROR_GETTING_ALL_ARCHIVED_CLIENTS', 409);
+    return;
+  }
+};
 
 // 6) PATCH /api/client/:id/restore
+export const restoreClient = async (req, res) => {
+  try {
+    const user = req.user;
+    const client_id = req.params.id;
+
+    const restoredClient = await Client.findByIdAndUpdate(client_id, {updatedAt: Date.now(), deleted:false}, { new: true });
+
+    return res.status(200).json(restoreClient);
+
+  } catch (error) {
+    handleHttpError(res, 'ERROR_RESTORING_CLIENT', 409);
+    return;
+  }
+};

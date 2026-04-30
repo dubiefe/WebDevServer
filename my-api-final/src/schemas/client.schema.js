@@ -15,3 +15,11 @@ export const createClientSchema = z.object({
     })
   })
 });
+
+export const updateClientSchema = z.object({
+  body: z.object({
+    name: z.string().optional(),
+    cif: z.string().optional(),
+    email: z.string().optional(),
+  })
+});

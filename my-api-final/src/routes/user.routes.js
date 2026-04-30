@@ -133,7 +133,7 @@ router.put('/register', authMiddleware, validate(updateUserSchema), userControll
 
 /**
  * @openapi
- * /api/user/register:
+ * /api/user/company:
  *   patch:
  *     tags:
  *       - Auth
@@ -260,7 +260,7 @@ router.post('/logout', authMiddleware, userController.logout)
  *       - Auth
  *     summary: Delete user (soft or hard)
  *     parameters:
- *      - in: path
+ *      - in: query
  *        name: soft
  *        schema:
  *          type: boolean
@@ -270,6 +270,13 @@ router.post('/logout', authMiddleware, userController.logout)
  *     responses:
  *       200:
  *         description: User deleted (soft or hard)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 deletedUser:
+ *                   $ref: '#/components/schemas/User'
  *       409:
  *         description: Error during deletion
  */
