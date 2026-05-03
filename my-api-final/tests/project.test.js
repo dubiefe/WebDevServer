@@ -10,8 +10,9 @@ describe('Auth Endpoints', () => {
   let refreshToken = '';
   let userEmail = '';
   let clientId = '';
+  let projectId = '';
   
-  // Client Testing
+  // Project Testing
   const testUser = {
     email: "user@test.com",
     password: "pass1234",
@@ -53,6 +54,21 @@ describe('Auth Endpoints', () => {
     }
   };
 
+  const testProject = {
+    clientId: "",
+    name: "Project Test",
+    projectCode: "PRTest",
+    address: {
+      street: "Calle de la Test",
+      number: "10",
+      postal: "28000",
+      city: "Madrid",
+      province: "Madrid"
+    },
+    email: "project@test.com",
+    active: true
+  };
+
   beforeAll(async () => {
     // Register user
     let res = await request(app)
@@ -68,49 +84,59 @@ describe('Auth Endpoints', () => {
         .patch('/api/user/company')
         .set('Authorization', `Bearer ${accessToken}`)
         .send(testCompany)
-  })
 
-  describe('POST /api/client/', () => {
-    it('should create a new client', async () => {
-      const res = await request(app)
+    // Create client data
+    res = await request(app)
         .post('/api/client')
         .set('Authorization', `Bearer ${accessToken}`)
         .send(testClient)
+    clientId = res.body.content._id
+
+    // Update the clientId for the project
+    testProject.clientId = clientId;
+  })
+
+  describe('POST /api/project/', () => {
+    it('should create a new project', async () => {
+      const res = await request(app)
+        .post('/api/project')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send(testProject)
         .expect('Content-Type', 'application/json; charset=utf-8')
         .expect(200);
 
-      clientId = res.body.content._id
+      projectId = res.body.content._id
     });
 
-    it('should refuse duplicated cif', async () => {
+    it('should refuse duplicated projectCode', async () => {
       const res = await request(app)
-        .post('/api/client')
+        .post('/api/project')
         .set('Authorization', `Bearer ${accessToken}`)
-        .send(testClient)
+        .send(testProject)
       
       expect(res.status).toBe(409);
     });
 
     it('should refuse incorrect data', async () => {
       const res = await request(app)
-        .post('/api/client')
+        .post('/api/project')
         .set('Authorization', `Bearer ${accessToken}`)
         .expect(400);
     });
   });
 
-  describe('GET /api/client', () => {
-    it('should get at least one client', async () => {
+  describe('GET /api/project', () => {
+    it('should get at least one project', async () => {
       const res = await request(app)
-        .get(`/api/client`)
+        .get(`/api/project`)
         .set('Authorization', `Bearer ${accessToken}`)
         .expect('Content-Type', 'application/json; charset=utf-8')
         .expect(200);
     });
 
-    it('should get at least one client with pagination', async () => {
+    it('should get at least one project with pagination', async () => {
       const res = await request(app)
-        .get(`/api/client?page=1&limit=2`)
+        .get(`/api/project?page=1&limit=2`)
         .set('Authorization', `Bearer ${accessToken}`)
         .expect('Content-Type', 'application/json; charset=utf-8')
         .expect(200);
@@ -121,10 +147,10 @@ describe('Auth Endpoints', () => {
     });
   });
 
-  describe('PUT /api/client/:id', () => {
-    it('should soft-delete a client', async () => {
+  describe('PUT /api/project/:id', () => {
+    it('should update a project', async () => {
       const res = await request(app)
-        .put(`/api/client/${clientId}`)
+        .put(`/api/project/${projectId}`)
         .set('Authorization', `Bearer ${accessToken}`)
         .send({
           name: "newTest"
@@ -136,48 +162,48 @@ describe('Auth Endpoints', () => {
     });
   });
 
-  describe('DELETE /api/client/:id?soft=true', () => {
-    it('should soft-delete a client', async () => {
+  describe('DELETE /api/project/:id?soft=true', () => {
+    it('should soft-delete a project', async () => {
       const res = await request(app)
-        .delete(`/api/client/${clientId}?soft=true`)
+        .delete(`/api/project/${projectId}?soft=true`)
         .set('Authorization', `Bearer ${accessToken}`)
         .expect('Content-Type', 'application/json; charset=utf-8')
         .expect(200);
     });
   });
 
-  describe('GET /api/client/archived', () => {
-    it('should get at least one archived client', async () => {
+  describe('GET /api/project/archived', () => {
+    it('should get at least one archived project', async () => {
       const res = await request(app)
-        .get(`/api/client/archived`)
+        .get(`/api/project/archived`)
         .set('Authorization', `Bearer ${accessToken}`)
         .expect('Content-Type', 'application/json; charset=utf-8')
         .expect(200);
     });
   });
 
-  describe('GET /api/client/:id', () => {
-    it('should return no client', async () => {
+  describe('GET /api/project/:id', () => {
+    it('should return no project', async () => {
       const res = await request(app)
-        .get(`/api/client/${clientId}`)
+        .get(`/api/client/${projectId}`)
         .set('Authorization', `Bearer ${accessToken}`)
         .expect(404);
     });
   });
 
-  describe('GET /api/client/:id/restore', () => {
-    it('should restore the client', async () => {
+  describe('GET /api/project/:id/restore', () => {
+    it('should restore the project', async () => {
       const res = await request(app)
-        .patch(`/api/client/${clientId}/restore`)
+        .patch(`/api/project/${projectId}/restore`)
         .set('Authorization', `Bearer ${accessToken}`)
         .expect(200);
     });
   });
 
-  describe('GET /api/client/:id', () => {
-    it('should find the client', async () => {
+  describe('GET /api/project/:id', () => {
+    it('should find the project', async () => {
       const res = await request(app)
-        .get(`/api/client/${clientId}`)
+        .get(`/api/project/${projectId}`)
         .set('Authorization', `Bearer ${accessToken}`)
         .expect(200);
     });
@@ -185,6 +211,12 @@ describe('Auth Endpoints', () => {
 
   // Clean after testing
   afterAll(async () => {
+    // Delete project
+    if(projectId) {
+      await request(app)
+        .delete(`/api/project/${projectId}`)
+        .set('Authorization', `Bearer ${accessToken}`);
+    }
     // Delete client
     if(clientId) {
       await request(app)
