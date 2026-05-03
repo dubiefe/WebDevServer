@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<coverage generated="1777545150460" clover="3.2.0">
-  <project timestamp="1777545150460" name="All files">
+<coverage generated="1777825166177" clover="3.2.0">
+  <project timestamp="1777825166177" name="All files">
     <metrics statements="429" coveredstatements="276" conditionals="95" coveredconditionals="50" methods="57" coveredmethods="36" elements="581" coveredelements="362" complexity="0" loc="429" ncloc="429" packages="11" files="26" classes="26"/>
     <package name="src">
       <metrics statements="15" coveredstatements="13" conditionals="4" coveredconditionals="2" methods="4" coveredmethods="2"/>
@@ -423,13 +423,13 @@
       <file name="client.routes.js" path="C:\Users\admin\Desktop\U-Tad\WebDevServer\my-api-final\src\routes\client.routes.js">
         <metrics statements="8" coveredstatements="8" conditionals="0" coveredconditionals="0" methods="0" coveredmethods="0"/>
         <line num="8" count="2" type="stmt"/>
-        <line num="10" count="2" type="stmt"/>
-        <line num="12" count="2" type="stmt"/>
-        <line num="14" count="2" type="stmt"/>
-        <line num="16" count="2" type="stmt"/>
-        <line num="18" count="2" type="stmt"/>
-        <line num="20" count="2" type="stmt"/>
-        <line num="22" count="2" type="stmt"/>
+        <line num="38" count="2" type="stmt"/>
+        <line num="74" count="2" type="stmt"/>
+        <line num="127" count="2" type="stmt"/>
+        <line num="153" count="2" type="stmt"/>
+        <line num="183" count="2" type="stmt"/>
+        <line num="218" count="2" type="stmt"/>
+        <line num="248" count="2" type="stmt"/>
       </file>
       <file name="index.js" path="C:\Users\admin\Desktop\U-Tad\WebDevServer\my-api-final\src\routes\index.js">
         <metrics statements="5" coveredstatements="4" conditionals="0" coveredconditionals="0" methods="1" coveredmethods="0"/>
@@ -451,9 +451,9 @@
         <line num="208" count="2" type="stmt"/>
         <line num="236" count="2" type="stmt"/>
         <line num="253" count="2" type="stmt"/>
-        <line num="276" count="2" type="stmt"/>
-        <line num="307" count="2" type="stmt"/>
-        <line num="337" count="2" type="stmt"/>
+        <line num="283" count="2" type="stmt"/>
+        <line num="314" count="2" type="stmt"/>
+        <line num="344" count="2" type="stmt"/>
       </file>
     </package>
     <package name="src.schemas">
