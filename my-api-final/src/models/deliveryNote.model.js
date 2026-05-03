@@ -66,12 +66,6 @@ const deliveryNoteSchema = new mongoose.Schema(
         return this.format === 'hours';
       }
     },
-    hours: {
-      type: Number,
-      required: function () {
-        return this.format === 'hours';
-      }
-    },
     workers: [
       {
         name: {
