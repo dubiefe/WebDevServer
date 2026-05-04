@@ -188,7 +188,7 @@ router.get('/:id', authMiddleware, clientController.getClient);
  *   delete:
  *     tags:
  *       - Client
- *     summary: Delete user (soft or hard)
+ *     summary: Delete client (soft or hard)
  *     parameters:
  *      - in: path
  *        name: id

@@ -105,7 +105,7 @@ export const getAllClient = async (req, res) => {
   }
 };
 
-// 3) GET /api/client/:id
+// 4) GET /api/client/:id
 export const getClient = async (req, res) => {
   try {
     const user = req.user;
@@ -131,7 +131,7 @@ export const getClient = async (req, res) => {
   }
 };
 
-// 4) DELETE /api/client/:id
+// 5) DELETE /api/client/:id
 export const deleteClient = async(req, res) => {
   try {
     const user = req.user
@@ -153,7 +153,7 @@ export const deleteClient = async(req, res) => {
   }
 }
 
-// 5) GET /api/client/archived
+// 6) GET /api/client/archived
 export const getAllArchivedClients = async (req, res) => {
   try {
     const user = req.user;
@@ -169,7 +169,7 @@ export const getAllArchivedClients = async (req, res) => {
   }
 };
 
-// 6) PATCH /api/client/:id/restore
+// 7) PATCH /api/client/:id/restore
 export const restoreClient = async (req, res) => {
   try {
     const user = req.user;

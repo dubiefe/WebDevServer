@@ -125,7 +125,7 @@ export const getAllProjects = async (req, res) => {
   }
 };
 
-// 3) GET /api/project/:id
+// 4) GET /api/project/:id
 export const getProject = async (req, res) => {
   try {
     const user = req.user;
@@ -151,7 +151,7 @@ export const getProject = async (req, res) => {
   }
 };
 
-// 4) DELETE /api/project/:id
+// 5) DELETE /api/project/:id
 export const deleteProject = async(req, res) => {
   try {
     const user = req.user
@@ -173,7 +173,7 @@ export const deleteProject = async(req, res) => {
   }
 }
 
-// 5) GET /api/project/archived
+// 6) GET /api/project/archived
 export const getAllArchivedProjects = async (req, res) => {
   try {
     const user = req.user;
@@ -189,7 +189,7 @@ export const getAllArchivedProjects = async (req, res) => {
   }
 };
 
-// 6) PATCH /api/project/:id/restore
+// 7) PATCH /api/project/:id/restore
 export const restoreProject = async (req, res) => {
   try {
     const user = req.user;
