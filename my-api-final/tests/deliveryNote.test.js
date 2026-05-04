@@ -1,4 +1,4 @@
-// tests/project.test.js
+// tests/deliveryNote.test.js
 import './setup.js';
 
 import request from 'supertest';
@@ -11,6 +11,7 @@ describe('Auth Endpoints', () => {
   let userEmail = '';
   let clientId = '';
   let projectId = '';
+  let deliveryNoteId = '';
   
   // Project Testing
   const testUser = {
@@ -69,6 +70,14 @@ describe('Auth Endpoints', () => {
     active: true
   };
 
+  const testDelieveryNote = {
+    project: "",
+    format: "hours",
+    description: "Test delivery note",
+    workDate: "2026-05-04T00:00:00.000Z",
+    hours: 7.5
+  };
+
   beforeAll(async () => {
     // Register user
     let res = await request(app)
@@ -94,49 +103,50 @@ describe('Auth Endpoints', () => {
 
     // Update the clientId for the project
     testProject.clientId = clientId;
-  })
 
-  describe('POST /api/project/', () => {
-    it('should create a new project', async () => {
-      const res = await request(app)
+    // Create project data
+    res = await request(app)
         .post('/api/project')
         .set('Authorization', `Bearer ${accessToken}`)
         .send(testProject)
+    projectId = res.body.content._id
+
+    // Update the projectId for the deliveryNote
+    testDelieveryNote.project = projectId;
+  })
+
+  describe('POST /api/deliverynote/', () => {
+    it('should create a new delievry note', async () => {
+      const res = await request(app)
+        .post('/api/deliverynote')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send(testDelieveryNote)
         .expect('Content-Type', 'application/json; charset=utf-8')
         .expect(200);
 
-      projectId = res.body.content._id
-    });
-
-    it('should refuse duplicated projectCode', async () => {
-      const res = await request(app)
-        .post('/api/project')
-        .set('Authorization', `Bearer ${accessToken}`)
-        .send(testProject)
-      
-      expect(res.status).toBe(409);
+      deliveryNoteId = res.body.content._id
     });
 
     it('should refuse incorrect data', async () => {
       const res = await request(app)
-        .post('/api/project')
+        .post('/api/deliverynote')
         .set('Authorization', `Bearer ${accessToken}`)
         .expect(400);
     });
   });
 
-  describe('GET /api/project', () => {
-    it('should get at least one project', async () => {
+  describe('GET /api/delievrynote', () => {
+    it('should get at least one delievry note', async () => {
       const res = await request(app)
-        .get(`/api/project`)
+        .get(`/api/deliverynote`)
         .set('Authorization', `Bearer ${accessToken}`)
         .expect('Content-Type', 'application/json; charset=utf-8')
         .expect(200);
     });
 
-    it('should get at least one project with pagination', async () => {
+    it('should get at least one delivery note with pagination', async () => {
       const res = await request(app)
-        .get(`/api/project?page=1&limit=2`)
+        .get(`/api/deliverynote?page=1&limit=2`)
         .set('Authorization', `Bearer ${accessToken}`)
         .expect('Content-Type', 'application/json; charset=utf-8')
         .expect(200);
@@ -147,70 +157,40 @@ describe('Auth Endpoints', () => {
     });
   });
 
-  describe('PUT /api/project/:id', () => {
-    it('should update a project', async () => {
+  describe('GET /api/deliverynote/:id', () => {
+    it('should find the delivery note', async () => {
       const res = await request(app)
-        .put(`/api/project/${projectId}`)
-        .set('Authorization', `Bearer ${accessToken}`)
-        .send({
-          name: "newTest"
-        })
-        .expect('Content-Type', 'application/json; charset=utf-8')
-        .expect(200);
-
-      expect(res.body.content.name).toBe("newTest");
-    });
-  });
-
-  describe('DELETE /api/project/:id?soft=true', () => {
-    it('should soft-delete a project', async () => {
-      const res = await request(app)
-        .delete(`/api/project/${projectId}?soft=true`)
-        .set('Authorization', `Bearer ${accessToken}`)
-        .expect('Content-Type', 'application/json; charset=utf-8')
-        .expect(200);
-    });
-  });
-
-  describe('GET /api/project/archived', () => {
-    it('should get at least one archived project', async () => {
-      const res = await request(app)
-        .get(`/api/project/archived`)
-        .set('Authorization', `Bearer ${accessToken}`)
-        .expect('Content-Type', 'application/json; charset=utf-8')
-        .expect(200);
-    });
-  });
-
-  describe('GET /api/project/:id', () => {
-    it('should return no project', async () => {
-      const res = await request(app)
-        .get(`/api/project/${projectId}`)
-        .set('Authorization', `Bearer ${accessToken}`)
-        .expect(404);
-    });
-  });
-
-  describe('GET /api/project/:id/restore', () => {
-    it('should restore the project', async () => {
-      const res = await request(app)
-        .patch(`/api/project/${projectId}/restore`)
+        .get(`/api/deliverynote/${deliveryNoteId}`)
         .set('Authorization', `Bearer ${accessToken}`)
         .expect(200);
     });
+
+    it('should not find the delivery note', async () => {
+      const res = await request(app)
+        .get(`/api/deliverynote/test`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(409);
+    });
   });
 
-  describe('GET /api/project/:id', () => {
-    it('should find the project', async () => {
+  describe('GET /api/deliverynote/pdf/:id', () => {
+    it('should download the delivery note PDF', async () => {
       const res = await request(app)
-        .get(`/api/project/${projectId}`)
+        .get(`/api/deliverynote/pdf/${deliveryNoteId}`)
         .set('Authorization', `Bearer ${accessToken}`)
+        .expect('Content-Type', 'application/pdf')
         .expect(200);
     });
   });
 
   // Clean after testing
   afterAll(async () => {
+    // Delete delivery note
+    if(deliveryNoteId) {
+      await request(app)
+        .delete(`/api/deliverynote/${deliveryNoteId}`)
+        .set('Authorization', `Bearer ${accessToken}`);
+    }
     // Delete project
     if(projectId) {
       await request(app)

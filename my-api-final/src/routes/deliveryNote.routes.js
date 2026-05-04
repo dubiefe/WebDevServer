@@ -2,7 +2,7 @@
 import { Router } from 'express';
 import * as deliveryNoteController from '../controllers/deliveryNote.controller.js';
 import { validate } from '../middleware/validate.js';
-import { createDeliveryNoteSchema } from '../schemas/deliveryNote.schema.js';
+import { createDeliveryNoteSchema, signDeliveryNoteSchema } from '../schemas/deliveryNote.schema.js';
 import { authMiddleware } from '../middleware/auth.middleware.js';
 
 const router = Router();
@@ -13,7 +13,7 @@ const router = Router();
  *   post:
  *     tags:
  *       - Delivery Note
- *     summary: Creata a new delivery note in the company of the user
+ *     summary: Creat a new delivery note in the company of the user
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -46,10 +46,35 @@ router.post('/', authMiddleware, validate(createDeliveryNoteSchema), deliveryNot
  *     summary: Get all delivery notes in the company
  *     parameters:
  *      - in: path
- *        name: name
+ *        name: project
  *        schema:
  *          type: string
- *        description: Filter parameter for the delivery note name
+ *        description: Filter parameter for the delivery note
+ *      - in: path
+ *        name: client
+ *        schema:
+ *          type: string
+ *        description: Filter parameter for the delivery note
+ *      - in: path
+ *        name: format
+ *        schema:
+ *          type: string
+ *        description: Filter parameter for the delivery note
+ *      - in: path
+ *        name: signed
+ *        schema:
+ *          type: string
+ *        description: Filter parameter for the delivery note
+ *      - in: path
+ *        name: from
+ *        schema:
+ *          type: string
+ *        description: Filter parameter for the delivery note
+ *      - in: path
+ *        name: to
+ *        schema:
+ *          type: string
+ *        description: Filter parameter for the delivery note
  *      - in: path
  *        name: sort
  *        schema:
@@ -116,9 +141,71 @@ router.get('/', authMiddleware, deliveryNoteController.getAllDeliveryNotes);
  *                 deliveryNote:
  *                   $ref: '#/components/schemas/DeliveryNote'
  *       409:
- *         description: Error getting client
+ *         description: Error getting delivery note
  */
 router.get('/:id', authMiddleware, deliveryNoteController.getDeliveryNote);
+
+/**
+ * @openapi
+ * /api/deliverynote/pdf/:id:
+ *   get:
+ *     tags:
+ *       - Delivery Note
+ *     summary: Generate a PDF for the delivery note
+ *     parameters:
+ *      - in: path
+ *        name: id
+ *        schema:
+ *          type: string
+ *        description: Id of the delivery note
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: PDF generated for the delivery note
+ *         content:
+ *           application/pdf
+ *       409:
+ *         description: Error during PDF generation
+ */
+router.get('/pdf/:id/', authMiddleware, deliveryNoteController.downloadPDF);
+
+/**
+ * @openapi
+ * /api/deliverynote/:id/sign:
+ *   âtch:
+ *     tags:
+ *       - Delivery Note
+ *     summary: Sign and generate a PDF for the delivery note
+ *     parameters:
+ *      - in: path
+ *        name: id
+ *        schema:
+ *          type: string
+ *        description: Id of the delivery note
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - signature
+ *             properties:
+ *               signature:
+ *                 type: string
+ *                 example: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+X6QAAAABJRU5ErkJggg=="
+ *     responses:
+ *       200:
+ *         description: Signed and PDF generated for the delivery note
+ *         content:
+ *           application/pdf
+ *       409:
+ *         description: Error during signing process
+ */
+router.patch('/:id/sign', authMiddleware, validate(signDeliveryNoteSchema), deliveryNoteController.sign)
 
 /**
  * @openapi

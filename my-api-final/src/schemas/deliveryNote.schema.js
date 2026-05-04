@@ -28,3 +28,9 @@ export const createDeliveryNoteSchema = z.object({
     }),
   ]),
 });
+
+export const signDeliveryNoteSchema = z.object({
+  body: z.object({
+    signature: z.string()
+  }),
+});

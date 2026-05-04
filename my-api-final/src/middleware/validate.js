@@ -3,7 +3,6 @@ import { ZodError } from 'zod';
 
 export const validate = (schema) => async (req, res, next) => {
   try {
-    console.log(req.body)
     await schema.parseAsync({
       body: req.body,
       query: req.query,

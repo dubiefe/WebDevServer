@@ -6,24 +6,9 @@ import Client from "../models/client.model.js";
 import Project from "../models/project.model.js";
 import DeliveryNote from "../models/deliveryNote.model.js";
 import { handleHttpError } from '../middleware/error.middleware.js';
-
-// ### Delivery Notes (2 points)
-
-// | Method  |           Endpoint            |          Description          |
-// |---------|-------------------------------|-------------------------------|
-// | POST    | `/api/deliverynote`           | Create a delivery note        |
-// | GET     | `/api/deliverynote`           | List delivery notes           |
-// | GET     | `/api/deliverynote/:id`       | Get a specific delivery note  |
-// | GET     | `/api/deliverynote/pdf/:id`   | Download delivery note as PDF |
-// | PATCH   | `/api/deliverynote/:id/sign`  | Sign a delivery note          |
-// | DELETE  | `/api/deliverynote/:id`       | Delete a delivery note        |
-
-// Technical specifications:
-
-// - **Create** (`POST /api/deliverynote`):
-//   - The note belongs to a specific project.
-//   - Can be of type `material` (delivered materials) or `hours` (hours worked).
-//   - Can be simple (single entry) or contain multiple workers/hours and materials.
+import { generateDeliveryNotePDF } from "../services/pdf.service.js";
+import fs from 'fs';
+import path from 'path';
 
 // 1) POST /api/deliverynote
 export const createDeliveryNote = async (req, res) => {
@@ -55,11 +40,7 @@ export const createDeliveryNote = async (req, res) => {
   }
 };
 
-// - **List** (`GET /api/deliverynote`): implement **pagination** and **filters**:
-//   - Pagination: `?page=1&limit=10` (also return `totalPages`, `totalItems`, `currentPage`).
-//   - Filters: `?project=<projectId>`, `?client=<clientId>`, `?format=hours`, `?signed=true`, `?from=2025-01-01&to=2025-12-31`, `?sort=-workDate`.
-
-// 3) GET /api/deliverynote
+// 2) GET /api/deliverynote
 export const getAllDeliveryNotes = async (req, res) => {
   try {
     const user = req.user;
@@ -106,9 +87,6 @@ export const getAllDeliveryNotes = async (req, res) => {
   }
 };
 
-// - **Get** (`GET /api/deliverynote/:id`):
-//   - Use `populate` in Mongoose to include user, client, and project data alongside the delivery note.
-
 // 3) GET /api/deliverynote/:id
 export const getDeliveryNote = async (req, res) => {
   try {
@@ -135,36 +113,85 @@ export const getDeliveryNote = async (req, res) => {
   }
 };
 
-
-// - **Download PDF** (`GET /api/deliverynote/pdf/:id`):
-//   - Generate the delivery note as a PDF using **pdfkit** (or similar).
-//   - The PDF must include user, client, project, and delivery note data (hours or materials), plus the signature if signed.
-//   - Only the note's owner or a `guest` of their company may download it.
-//   - Return the PDF as a stream (`res.setHeader('Content-Type', 'application/pdf')`).
-
-export const dowloadPDF = async(req, res) => {
+// 4) GET /api/deliverynote/pdf/:id
+export const downloadPDF = async(req, res) => {
   try {
     const user = req.user
+    const userData = await User.findById(user._id)
 
     const deliveryNote_id = req.params.id;
+    const deliveryNoteData = await DeliveryNote.findById(deliveryNote_id).populate("client").populate("project").populate("user");
+
+    if (deliveryNoteData && !deliveryNoteData.company.equals(userData.company)) {
+        handleHttpError(res, 'DELIVERY_NOTE_NOT_IN_COMPANY', 409);
+        return;
+    }
+
+    // Store pdf
+    const dirPath = path.join(process.cwd(), 'pdfs');
+    if (!fs.existsSync(dirPath)) {
+      fs.mkdirSync(dirPath);
+    }
+
+    const fileName = `delivery-note-${deliveryNote_id}.pdf`;
+    const filePath = path.join(dirPath, fileName);
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition',`inline; filename="delivery-note-${deliveryNote_id}.pdf"`);
+
+    // Calling pdf service
+    await generateDeliveryNotePDF(deliveryNoteData, { filePath, res });
+
+    // Update pdf path
+    await DeliveryNote.findByIdAndUpdate(deliveryNote_id, { pdfPath: filePath, updatedAt: Date.now() });
       
   } catch (error) {
-    handleHttpError(res, 'ERROR_DELETE_DELIVERY_NOTE', 409);
+    handleHttpError(res, 'ERROR_CREATING_PDF' + error, 409);
     return;
   }
 }
 
-// - **Sign** (`PATCH /api/deliverynote/:id/sign`):
-//   - Receives the signature image as a Base64 string in the request body (JSON).
-//   - Stores the signature data in the database (`signatureData` field).
-//   - Once signed, generates the PDF locally.
-//   - A signed delivery note cannot be modified or deleted.
-
+// 5) PATCH /api/deliverynote/:id/sign
 export const sign = async(req, res) => {
   try {
     const user = req.user
+    const userData = await User.findById(user._id)
 
     const deliveryNote_id = req.params.id;
+    const deliveryNoteData = await DeliveryNote.findById(deliveryNote_id).populate("client").populate("project").populate("user");
+
+    if (deliveryNoteData && !deliveryNoteData.company.equals(userData.company)) {
+        handleHttpError(res, 'DELIVERY_NOTE_NOT_IN_COMPANY', 409);
+        return;
+    } else if (deliveryNoteData.signed) {
+        handleHttpError(res, 'DELIVERY_NOTE_ALREADY_SIGNED', 409);
+        return;
+    }
+
+    // Store signature in DB
+    deliveryNoteData.signatureData = req.body.signature;
+    deliveryNoteData.signed = true;
+    deliveryNoteData.signedAt = Date.now();
+    deliveryNoteData.updatedAt = Date.now();
+    await deliveryNoteData.save();
+
+    // Store pdf
+    const dirPath = path.join(process.cwd(), 'pdfs');
+    if (!fs.existsSync(dirPath)) {
+      fs.mkdirSync(dirPath);
+    }
+
+    const fileName = `delivery-note-${deliveryNote_id}.pdf`;
+    const filePath = path.join(dirPath, fileName);
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition',`inline; filename="delivery-note-${deliveryNote_id}.pdf"`);
+
+    // Generate PDF
+    await generateDeliveryNotePDF(deliveryNoteData, { filePath, res });
+
+    // Update pdf path
+    await DeliveryNote.findByIdAndUpdate(deliveryNote_id, { pdfPath: filePath, updatedAt: Date.now() });
       
   } catch (error) {
     handleHttpError(res, 'ERROR_DELETE_DELIVERY_NOTE', 409);
@@ -172,10 +199,7 @@ export const sign = async(req, res) => {
   }
 }
 
-// - **Delete** (`DELETE /api/deliverynote/:id`):
-//   - Can only be deleted if the delivery note **is not signed**.
-
-// 4) DELETE /api/deliverynote/:id
+// 6) DELETE /api/deliverynote/:id
 export const deleteDeliveryNote = async(req, res) => {
   try {
     const user = req.user
