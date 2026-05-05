@@ -34,9 +34,7 @@ export const register = async (req, res) => {
     });
 
     // If the address doesn't exists, we create it
-    if (!address) {
-      address = await Address.create(req.body.address);
-    }
+    if (!address) { address = await Address.create(req.body.address); }
     
     // Create a user with the hash password
     const body = { ...req.body, password, address: address._id };
@@ -236,7 +234,12 @@ export const getUser = async(req, res) => {
     
     const fullUser = await User.findById(user._id).populate('company').populate('address')
 
-    res.status(200).json(fullUser.toObject({ virtuals: true }));
+    if(fullUser.deleted) {
+      handleHttpError(res, 'USER_DELETED', 404);
+      return;
+    } else {
+      res.status(200).json(fullUser.toObject({ virtuals: true }));
+    }
     
   } catch (error) {
     handleHttpError(res, 'ERROR_GETTING_USER', 409);
@@ -362,9 +365,7 @@ export const inviteColleagues = async(req, res) => {
     });
 
     // If the address doesn't exists, we create it
-    if (!address) {
-      address = await Address.create(req.body.address);
-    }
+    if (!address) { address = await Address.create(req.body.address); }
     
     // Create a user with the hash password
     const body = { ...req.body, password, address: address._id, company:user.company, role:"guest" };

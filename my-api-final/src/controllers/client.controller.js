@@ -32,9 +32,7 @@ export const createClient = async (req, res) => {
             province: req.body.address.province
         });
         // If the address doesn't exists, we create it
-        if (!address) {
-            address = await Address.create(req.body.address);
-        }
+        if (!address) { address = await Address.create(req.body.address); }
         const body = { ...req.body, address: address._id, user: userData._id, company: userData.company };
         const newClient = await Client.create(body);
 
@@ -77,9 +75,7 @@ export const getAllClient = async (req, res) => {
     if(name) { filter.name = name; } 
     query = Client.find(filter)
 
-    if(sort) {
-        query.sort(sort)
-    } 
+    if(sort) { query.sort(sort) } 
 
     let totalPages, totalItems;
     if(page && limit) {

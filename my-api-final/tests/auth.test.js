@@ -149,6 +149,15 @@ describe('Auth Endpoints', () => {
     });
   });
 
+  describe('POST /api/user/logout', () => {
+    it('shouldlogout the user', async () => {
+      const res = await request(app)
+        .post('/api/user/logout')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(200);
+    });
+  });
+
   // Clean after testing
   afterAll(async () => {
     if (userEmail) {

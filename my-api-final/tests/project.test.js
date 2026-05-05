@@ -7,14 +7,30 @@ import { log } from 'node:console';
 
 describe('Auth Endpoints', () => {
   let accessToken = '';
-  let refreshToken = '';
+  let accessTokenNoCompany = '';
   let userEmail = '';
+  let userEmailNoCompany = '';
   let clientId = '';
   let projectId = '';
   
   // Project Testing
   const testUser = {
     email: "user@test.com",
+    password: "pass1234",
+    name: "User",
+    lastname: "Testing",
+    nif: "ABC123",
+    address: {
+      street: "Calle de la Test",
+      number: "10",
+      postal: "28000",
+      city: "Madrid",
+      province: "Madrid"
+    }
+  };
+
+  const testUserNoCompany = {
+    email: "usernocompany@test.com",
     password: "pass1234",
     name: "User",
     lastname: "Testing",
@@ -76,8 +92,14 @@ describe('Auth Endpoints', () => {
         .send(testUser)
       
     accessToken = res.body.accessToken;
-    refreshToken = res.body.refreshToken;
     userEmail = res.body.user.email;
+
+    res = await request(app)
+        .post('/api/user/register')
+        .send(testUserNoCompany)
+      
+    accessTokenNoCompany = res.body.accessToken;
+    userEmailNoCompany = res.body.user.email;
 
     // Create Company data
     res = await request(app)
@@ -108,13 +130,30 @@ describe('Auth Endpoints', () => {
       projectId = res.body.content._id
     });
 
+    it('should refuse user with no company', async () => {
+      const res = await request(app)
+        .post('/api/project')
+        .set('Authorization', `Bearer ${accessTokenNoCompany}`)
+        .send(testProject)
+        .expect(409)
+    });
+
     it('should refuse duplicated projectCode', async () => {
       const res = await request(app)
         .post('/api/project')
         .set('Authorization', `Bearer ${accessToken}`)
         .send(testProject)
-      
-      expect(res.status).toBe(409);
+        .expect(409)
+    });
+
+    it('should refuse incorrect clientid', async () => {
+      testProject.projectCode = "blabla"
+      testProject.clientId = "69f1f8fb5e811da4fd57ac38"
+      const res = await request(app)
+        .post('/api/project')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send(testProject)
+        .expect(409);
     });
 
     it('should refuse incorrect data', async () => {
@@ -128,7 +167,7 @@ describe('Auth Endpoints', () => {
   describe('GET /api/project', () => {
     it('should get at least one project', async () => {
       const res = await request(app)
-        .get(`/api/project`)
+        .get(`/api/project?sort=createdAt`)
         .set('Authorization', `Bearer ${accessToken}`)
         .expect('Content-Type', 'application/json; charset=utf-8')
         .expect(200);
@@ -207,6 +246,13 @@ describe('Auth Endpoints', () => {
         .set('Authorization', `Bearer ${accessToken}`)
         .expect(200);
     });
+
+    it('should not find the project if no user company', async () => {
+      const res = await request(app)
+        .get(`/api/project/${projectId}`)
+        .set('Authorization', `Bearer ${accessTokenNoCompany}`)
+        .expect(409);
+    });
   });
 
   // Clean after testing
@@ -228,6 +274,12 @@ describe('Auth Endpoints', () => {
       await request(app)
         .delete(`/api/user`)
         .set('Authorization', `Bearer ${accessToken}`);
+    }
+    // Delete user no company
+    if (userEmailNoCompany) {
+      await request(app)
+        .delete(`/api/user`)
+        .set('Authorization', `Bearer ${accessTokenNoCompany}`);
     }
   });
 });

@@ -24,7 +24,7 @@ export const createProject = async (req, res) => {
     try {
         clientData = await Client.findById(req.body.clientId);
     } catch(e) {
-        handleHttpError(res, 'THE_CLIENT_NOT_EXISTING', 409);
+        handleHttpError(res, 'THE_CLIENT_DO_NOT_EXIST', 409);
         return;
     }
 
@@ -50,9 +50,7 @@ export const createProject = async (req, res) => {
             province: req.body.address.province
         });
         // If the address doesn't exists, we create it
-        if (!address) {
-            address = await Address.create(req.body.address);
-        }
+        if (!address) { address = await Address.create(req.body.address); }
         const body = { ...req.body, address: address._id, user: userData._id, company: userData.company, client: clientData._id };
         const newProject = await Project.create(body);
 
@@ -97,9 +95,7 @@ export const getAllProjects = async (req, res) => {
     if(active) { filter.active = active; } 
     query = Project.find(filter)
 
-    if(sort) {
-        query.sort(sort)
-    } 
+    if(sort) { query.sort(sort) } 
 
     let totalPages, totalItems;
     if(page && limit) {

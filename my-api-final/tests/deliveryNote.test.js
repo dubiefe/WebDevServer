@@ -7,15 +7,32 @@ import { log } from 'node:console';
 
 describe('Auth Endpoints', () => {
   let accessToken = '';
-  let refreshToken = '';
+  let accessTokenNoCompany = '';
   let userEmail = '';
+  let userEmailNoCompany = '';
   let clientId = '';
   let projectId = '';
   let deliveryNoteId = '';
+  let deliveryNoteSignedId = '';
   
   // Project Testing
   const testUser = {
     email: "user@test.com",
+    password: "pass1234",
+    name: "User",
+    lastname: "Testing",
+    nif: "ABC123",
+    address: {
+      street: "Calle de la Test",
+      number: "10",
+      postal: "28000",
+      city: "Madrid",
+      province: "Madrid"
+    }
+  };
+
+  const testUserNoCompany = {
+    email: "usernocompany@test.com",
     password: "pass1234",
     name: "User",
     lastname: "Testing",
@@ -78,15 +95,31 @@ describe('Auth Endpoints', () => {
     hours: 7.5
   };
 
+  const testDelieveryNoteSigned = {
+    project: "",
+    format: "material",
+    description: "Test delivery note",
+    workDate: "2026-05-04T00:00:00.000Z",
+    material: "cement",
+    quantity: 45,
+    unit: "kg"
+  };
+
   beforeAll(async () => {
-    // Register user
+    // Register users
     let res = await request(app)
         .post('/api/user/register')
         .send(testUser)
       
     accessToken = res.body.accessToken;
-    refreshToken = res.body.refreshToken;
     userEmail = res.body.user.email;
+
+    res = await request(app)
+        .post('/api/user/register')
+        .send(testUserNoCompany)
+      
+    accessTokenNoCompany = res.body.accessToken;
+    userEmailNoCompany = res.body.user.email;
 
     // Create Company data
     res = await request(app)
@@ -113,10 +146,11 @@ describe('Auth Endpoints', () => {
 
     // Update the projectId for the deliveryNote
     testDelieveryNote.project = projectId;
+    testDelieveryNoteSigned.project = projectId;
   })
 
   describe('POST /api/deliverynote/', () => {
-    it('should create a new delievry note', async () => {
+    it('should create a new delievery note', async () => {
       const res = await request(app)
         .post('/api/deliverynote')
         .set('Authorization', `Bearer ${accessToken}`)
@@ -125,6 +159,25 @@ describe('Auth Endpoints', () => {
         .expect(200);
 
       deliveryNoteId = res.body.content._id
+    });
+
+    it('should create a new delievery note', async () => {
+      const res = await request(app)
+        .post('/api/deliverynote')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send(testDelieveryNoteSigned)
+        .expect('Content-Type', 'application/json; charset=utf-8')
+        .expect(200);
+
+      deliveryNoteSignedId = res.body.content._id
+    });
+
+    it('should refuse adding delivery note if no company linked to the user', async () => {
+      const res = await request(app)
+        .post('/api/deliverynote')
+        .set('Authorization', `Bearer ${accessTokenNoCompany}`)
+        .send(testDelieveryNote)
+        .expect(409)
     });
 
     it('should refuse incorrect data', async () => {
@@ -138,7 +191,7 @@ describe('Auth Endpoints', () => {
   describe('GET /api/delievrynote', () => {
     it('should get at least one delievry note', async () => {
       const res = await request(app)
-        .get(`/api/deliverynote`)
+        .get(`/api/deliverynote?sort=createdAt`)
         .set('Authorization', `Bearer ${accessToken}`)
         .expect('Content-Type', 'application/json; charset=utf-8')
         .expect(200);
@@ -165,11 +218,18 @@ describe('Auth Endpoints', () => {
         .expect(200);
     });
 
+    it('should not find the delivery note because user not in company', async () => {
+      const res = await request(app)
+        .get(`/api/deliverynote/${deliveryNoteId}`)
+        .set('Authorization', `Bearer ${accessTokenNoCompany}`)
+        .expect(409);
+    });
+
     it('should not find the delivery note', async () => {
       const res = await request(app)
-        .get(`/api/deliverynote/test`)
+        .get(`/api/deliverynote/69f1f8fb5e811da4fd57ac38`)
         .set('Authorization', `Bearer ${accessToken}`)
-        .expect(409);
+        .expect(404);
     });
   });
 
@@ -180,6 +240,56 @@ describe('Auth Endpoints', () => {
         .set('Authorization', `Bearer ${accessToken}`)
         .expect('Content-Type', 'application/pdf')
         .expect(200);
+    });
+
+    it('should not download the delivery note PDF if not in company', async () => {
+      const res = await request(app)
+        .get(`/api/deliverynote/pdf/${deliveryNoteId}`)
+        .set('Authorization', `Bearer ${accessTokenNoCompany}`)
+        .expect(409);
+    });
+  });
+
+  describe('PATCH /api/deliverynote/:id/sign', () => {
+    it('should sign the delivery note', async () => {
+      const res = await request(app)
+        .patch(`/api/deliverynote/${deliveryNoteSignedId}/sign`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({ "signature": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+X6QAAAABJRU5ErkJggg==" })
+        .expect('Content-Type', 'application/pdf')
+        .expect(200);
+    });
+
+    it('should not sign a delivery note already sign', async () => {
+      const res = await request(app)
+        .patch(`/api/deliverynote/${deliveryNoteSignedId}/sign`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({ "signature": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+X6QAAAABJRU5ErkJggg==" })
+        .expect(409);
+    });
+
+    it('should not sign a delivery note if user not in company', async () => {
+      const res = await request(app)
+        .patch(`/api/deliverynote/${deliveryNoteSignedId}/sign`)
+        .set('Authorization', `Bearer ${accessTokenNoCompany}`)
+        .send({ "signature": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+X6QAAAABJRU5ErkJggg==" })
+        .expect(409);
+    });
+
+    it('should refuse incorrect data', async () => {
+      const res = await request(app)
+        .patch(`/api/deliverynote/${deliveryNoteSignedId}/sign`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(400);
+    });
+  });
+
+  describe('PATCH /api/deliverynote/:id/sign', () => {
+    it('should not deleted a signed delivery note', async () => {
+    const res = await request(app)
+        .delete(`/api/deliverynote/${deliveryNoteSignedId}`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(409);
     });
   });
 
@@ -208,6 +318,12 @@ describe('Auth Endpoints', () => {
       await request(app)
         .delete(`/api/user`)
         .set('Authorization', `Bearer ${accessToken}`);
+    }
+    // Delete user no company
+    if (userEmailNoCompany) {
+      await request(app)
+        .delete(`/api/user`)
+        .set('Authorization', `Bearer ${accessTokenNoCompany}`);
     }
   });
 });

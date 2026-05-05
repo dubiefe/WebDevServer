@@ -7,13 +7,29 @@ import { log } from 'node:console';
 
 describe('Auth Endpoints', () => {
   let accessToken = '';
-  let refreshToken = '';
+  let accessTokenNoCompany = '';
   let userEmail = '';
+  let userEmailNoCompany = '';
   let clientId = '';
   
   // Client Testing
   const testUser = {
     email: "user@test.com",
+    password: "pass1234",
+    name: "User",
+    lastname: "Testing",
+    nif: "ABC123",
+    address: {
+      street: "Calle de la Test",
+      number: "10",
+      postal: "28000",
+      city: "Madrid",
+      province: "Madrid"
+    }
+  };
+
+  const testUserNoCompany = {
+    email: "usernocompany@test.com",
     password: "pass1234",
     name: "User",
     lastname: "Testing",
@@ -54,14 +70,20 @@ describe('Auth Endpoints', () => {
   };
 
   beforeAll(async () => {
-    // Register user
+    // Register users
     let res = await request(app)
         .post('/api/user/register')
         .send(testUser)
       
     accessToken = res.body.accessToken;
-    refreshToken = res.body.refreshToken;
     userEmail = res.body.user.email;
+
+    res = await request(app)
+        .post('/api/user/register')
+        .send(testUserNoCompany)
+      
+    accessTokenNoCompany = res.body.accessToken;
+    userEmailNoCompany = res.body.user.email;
 
     // Create Company data
     res = await request(app)
@@ -80,6 +102,14 @@ describe('Auth Endpoints', () => {
         .expect(200);
 
       clientId = res.body.content._id
+    });
+
+    it('should refuse adding client if no company linked to the user', async () => {
+      const res = await request(app)
+        .post('/api/client')
+        .set('Authorization', `Bearer ${accessTokenNoCompany}`)
+        .send(testClient)
+        .expect(409)
     });
 
     it('should refuse duplicated cif', async () => {
@@ -102,7 +132,7 @@ describe('Auth Endpoints', () => {
   describe('GET /api/client', () => {
     it('should get at least one client', async () => {
       const res = await request(app)
-        .get(`/api/client`)
+        .get(`/api/client?sort=createdAt`)
         .set('Authorization', `Bearer ${accessToken}`)
         .expect('Content-Type', 'application/json; charset=utf-8')
         .expect(200);
@@ -181,6 +211,13 @@ describe('Auth Endpoints', () => {
         .set('Authorization', `Bearer ${accessToken}`)
         .expect(200);
     });
+
+    it('should not find the client in not in company', async () => {
+      const res = await request(app)
+        .get(`/api/client/${clientId}`)
+        .set('Authorization', `Bearer ${accessTokenNoCompany}`)
+        .expect(409);
+    });
   });
 
   // Clean after testing
@@ -196,6 +233,12 @@ describe('Auth Endpoints', () => {
       await request(app)
         .delete(`/api/user`)
         .set('Authorization', `Bearer ${accessToken}`);
+    }
+    // Delete user no company
+    if (userEmailNoCompany) {
+      await request(app)
+        .delete(`/api/user`)
+        .set('Authorization', `Bearer ${accessTokenNoCompany}`);
     }
   });
 });

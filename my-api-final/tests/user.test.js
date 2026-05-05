@@ -7,13 +7,29 @@ import { log } from 'node:console';
 
 describe('Auth Endpoints', () => {
   let accessToken = '';
-  let refreshToken = '';
+  let accessTokenNoCompany = '';
   let userEmail = '';
+  let userEmailNoCompany = '';
   let userEmailInvited = '';
   
   // User Testing
   const testUser = {
     email: "user@test.com",
+    password: "pass1234",
+    name: "User",
+    lastname: "Testing",
+    nif: "ABC123",
+    address: {
+      street: "Calle de la Test",
+      number: "10",
+      postal: "28000",
+      city: "Madrid",
+      province: "Madrid"
+    }
+  };
+
+  const testUserNoCompany = {
+    email: "usernocompany@test.com",
     password: "pass1234",
     name: "User",
     lastname: "Testing",
@@ -57,13 +73,19 @@ describe('Auth Endpoints', () => {
 
   beforeAll(async () => {
     // Register user
-    const res = await request(app)
+    let res = await request(app)
         .post('/api/user/register')
         .send(testUser)
       
     accessToken = res.body.accessToken;
-    refreshToken = res.body.refreshToken;
     userEmail = res.body.user.email;
+
+    res = await request(app)
+        .post('/api/user/register')
+        .send(testUserNoCompany)
+      
+    accessTokenNoCompany = res.body.accessToken;
+    userEmailNoCompany = res.body.user.email;
   })
 
   describe('PUT /api/user/validation', () => {
@@ -107,7 +129,7 @@ describe('Auth Endpoints', () => {
   });
 
   describe('PATCH /api/user/company', () => {
-    it('should update the company of the user', async () => {
+    it('should update the company of the user with a new one', async () => {
         const res = await request(app)
           .patch('/api/user/company')
           .set('Authorization', `Bearer ${accessToken}`)
@@ -132,6 +154,12 @@ describe('Auth Endpoints', () => {
             .expect(400);
     });
 
+    it('should fail if no company linked to user', async () => {
+        await request(app)
+            .patch('/api/user/logo')
+            .set('Authorization', `Bearer ${accessTokenNoCompany}`)
+            .expect(401);
+    });
 
   });
 
@@ -141,6 +169,23 @@ describe('Auth Endpoints', () => {
             .get('/api/user')
             .set('Authorization', `Bearer ${accessToken}`)
             .expect(200);
+    });
+  });
+
+  describe('DELETE /api/user/:id?soft=true', () => {
+    it('should soft-delete a user', async () => {
+      const res = await request(app)
+        .delete(`/api/user?soft=true`)
+        .set('Authorization', `Bearer ${accessTokenNoCompany}`)
+        .expect('Content-Type', 'application/json; charset=utf-8')
+        .expect(200);
+    });
+
+    it('should not get the soft-deleted user', async () => {
+      const res = await request(app)
+        .get(`/api/user`)
+        .set('Authorization', `Bearer ${accessTokenNoCompany}`)
+        .expect(404);
     });
   });
 
@@ -189,6 +234,17 @@ describe('Auth Endpoints', () => {
             .send(testInvitedUser)
             .expect(409);
     });
+
+    it('should refuse non admin user', async () => {
+        res = await request(app)
+          .post('/api/user/login')
+          .send({ email: testInvitedUser.email, password: testInvitedUser.password})
+        await request(app)
+            .post('/api/user/invite')
+            .set('Authorization', `Bearer ${res.body.accessToken}`)
+            .send(testInvitedUser)
+            .expect(401);
+    });
   });
 
   // Clean after testing
@@ -198,7 +254,12 @@ describe('Auth Endpoints', () => {
         .delete(`/api/user`)
         .set('Authorization', `Bearer ${accessToken}`);
     }
-
+    // Delete user no company
+    if (userEmailNoCompany) {
+      await request(app)
+        .delete(`/api/user`)
+        .set('Authorization', `Bearer ${accessTokenNoCompany}`);
+    }
     // Delete user invited
     if (userEmailInvited) {
       res = await request(app)

@@ -59,9 +59,7 @@ export const getAllDeliveryNotes = async (req, res) => {
     if (to) { filter.createdAt.$lte = new Date(to); }
     query = DeliveryNote.find(filter)
 
-    if(sort) {
-        query.sort(sort)
-    } 
+    if(sort) { query.sort(sort) } 
 
     let totalPages, totalItems;
     if(page && limit) {
@@ -129,9 +127,7 @@ export const downloadPDF = async(req, res) => {
 
     // Store pdf
     const dirPath = path.join(process.cwd(), 'pdfs');
-    if (!fs.existsSync(dirPath)) {
-      fs.mkdirSync(dirPath);
-    }
+    if (!fs.existsSync(dirPath)) { fs.mkdirSync(dirPath); }
 
     const fileName = `delivery-note-${deliveryNote_id}.pdf`;
     const filePath = path.join(dirPath, fileName);
@@ -177,9 +173,7 @@ export const sign = async(req, res) => {
 
     // Store pdf
     const dirPath = path.join(process.cwd(), 'pdfs');
-    if (!fs.existsSync(dirPath)) {
-      fs.mkdirSync(dirPath);
-    }
+    if (!fs.existsSync(dirPath)) { fs.mkdirSync(dirPath); }
 
     const fileName = `delivery-note-${deliveryNote_id}.pdf`;
     const filePath = path.join(dirPath, fileName);
