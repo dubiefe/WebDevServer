@@ -8,6 +8,7 @@ import { encrypt, compare } from '../utils/handlePassword.js';
 import { generateAccessToken, generateRefreshToken, getRefreshTokenExpiry } from '../utils/handleJwt.js';
 import { handleHttpError } from '../middleware/error.middleware.js';
 import { emitUserDeleted, emitUserInvited, emitUserRegistered } from '../services/notification.service.js';
+import { sendVerificationEmail } from '../services/email.service.js';
 
 const PUBLIC_URL = process.env.PUBLIC_URL || "http://localhost:3000";
 
@@ -63,6 +64,9 @@ export const register = async (req, res) => {
       refreshToken: refreshToken,
       user: {email:dataUser.email, status:dataUser.status, role:dataUser.role}
     };
+
+    // Send email
+    await sendVerificationEmail(dataUser.email, dataUser.verificationCode);
     
     return res.status(201).send(data);
 
