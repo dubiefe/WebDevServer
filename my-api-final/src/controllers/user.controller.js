@@ -161,7 +161,7 @@ export const onboardingPersonalData = async(req, res) => {
   }
 }
 
-// 4) PUT /api/user/company
+// 4) PATCH /api/user/company
 export const onboardingCompanyData = async(req, res) => {
   try {
     const user = req.user;
@@ -332,7 +332,7 @@ export const changePassword = async(req, res) => {
     res.json({ message: 'Password updated' });
       
   } catch (error) {
-    handleHttpError(res, 'ERROR_DELETE_USER', 409);
+    handleHttpError(res, 'ERROR_UPDATING_PASSWORD', 409);
     return;
   }
 }

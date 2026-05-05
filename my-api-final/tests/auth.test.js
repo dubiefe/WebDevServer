@@ -124,11 +124,34 @@ describe('Auth Endpoints', () => {
     });
   });
 
+  describe('POST /api/user/refresh', () => {
+    it('should send a new refresh Token', async () => {
+      const res = await request(app)
+        .post('/api/user/refresh')
+        .send({refreshToken: refreshToken})
+        .expect(200);
+      
+      accessToken = res.body.accessToken
+    });
+
+    it('should refuse incorrect token', async () => {
+      await request(app)
+        .post('/api/user/refresh')
+        .send({refreshToken : "bleble"})
+        .expect(401);
+    });
+
+    it('should refuse no token', async () => {
+      await request(app)
+        .post('/api/user/refresh')
+        .send({test: ""})
+        .expect(400);
+    });
+  });
+
   // Clean after testing
   afterAll(async () => {
-    console.log("hello")
     if (userEmail) {
-      console.log("hello again")
       await request(app)
         .delete(`/api/user`)
         .set('Authorization', `Bearer ${accessToken}`);
