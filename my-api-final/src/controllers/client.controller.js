@@ -36,6 +36,14 @@ export const createClient = async (req, res) => {
         const body = { ...req.body, address: address._id, user: userData._id, company: userData.company };
         const newClient = await Client.create(body);
 
+        // Websocket
+        //const io = getIO();
+        // const companyId = String(userData.company);
+        // if (io) {
+        //   console.log("[WEBSOCKET]: client:new")
+        //   io.to(companyId).emit('client:new', newClient);
+        // }
+
         return res.status(200).json({ message: 'Client created', content: newClient });
     }
 

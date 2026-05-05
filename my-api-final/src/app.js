@@ -30,16 +30,4 @@ app.get('/health', (req, res) => {
 // API routes
 app.use('/api', routes);
 
-const PORT = process.env.PORT || 3000;
-
-const startServer = async () => {
-  await dbConnect();
-  app.listen(PORT, () => {
-    console.log(`Server running on http://localhost:${PORT}`);
-    console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
-  });
-}
-
-startServer();
-
 export default app;

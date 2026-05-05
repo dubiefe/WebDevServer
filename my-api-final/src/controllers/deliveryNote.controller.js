@@ -9,6 +9,7 @@ import { handleHttpError } from '../middleware/error.middleware.js';
 import { generateDeliveryNotePDF } from "../services/pdf.service.js";
 import fs from 'fs';
 import path from 'path';
+import { getIO } from '../socket/index.js';
 
 // 1) POST /api/deliverynote
 export const createDeliveryNote = async (req, res) => {
@@ -31,11 +32,19 @@ export const createDeliveryNote = async (req, res) => {
         const body = { ...req.body, user: userData._id, company: projectData.company, client: projectData.client };
         const newDeliveryNote = await DeliveryNote.create(body);
 
+        // Websocket
+        //const io = getIO();
+        // const companyId = String(projectData.company);
+        // if (io) {
+        //   console.log("[WEBSOCKET]: deliverynote:new")
+        //   io.to(companyId).emit('deliverynote:new', newDeliveryNote);
+        // }
+
         return res.status(200).json({ message: 'Delivery note created', content: newDeliveryNote });
     }
 
   } catch (error) {
-    handleHttpError(res, 'ERROR_CREATING_DELIVERY_NOTE', 409);
+    handleHttpError(res, 'ERROR_CREATING_DELIVERY_NOTE' + error, 409);
     return;
   }
 };
@@ -170,6 +179,14 @@ export const sign = async(req, res) => {
     deliveryNoteData.signedAt = Date.now();
     deliveryNoteData.updatedAt = Date.now();
     await deliveryNoteData.save();
+
+    // Websocket
+    //const io = getIO();
+    // const companyId = String(deliveryNoteData.company);
+    // if (io) {
+    //   console.log("[WEBSOCKET]: deliverynote:signed")
+    //   io.to(companyId).emit('deliverynote:signed', deliveryNoteData);
+    // }
 
     // Store pdf
     const dirPath = path.join(process.cwd(), 'pdfs');

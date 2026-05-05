@@ -54,6 +54,14 @@ export const createProject = async (req, res) => {
         const body = { ...req.body, address: address._id, user: userData._id, company: userData.company, client: clientData._id };
         const newProject = await Project.create(body);
 
+        // Websocket
+        //const io = getIO();
+        // const companyId = String(userData.company);
+        // if (io) {
+        //   console.log("[WEBSOCKET]: project:new")
+        //   io.to(companyId).emit('project:new', newProject);
+        // }
+
         return res.status(200).json({ message: 'Project created', content: newProject });
     }
 
