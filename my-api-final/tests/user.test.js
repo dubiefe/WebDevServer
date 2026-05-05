@@ -1,7 +1,6 @@
 // tests/auth.test.js
 import './setup.js';
 
-import mongoose from 'mongoose';
 import request from 'supertest';
 import app from '../src/app.js';
 import { log } from 'node:console';
@@ -270,7 +269,5 @@ describe('Auth Endpoints', () => {
           .delete(`/api/user`)
           .set('Authorization', `Bearer ${res.body.accessToken}`);
     }
-    // Close mongo
-    await mongoose.connection.close();
   });
 });

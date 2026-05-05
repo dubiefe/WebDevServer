@@ -11,6 +11,9 @@
     "test:watch": "npm test -- --watch",
     "test:coverage": "npm test -- --coverage"
   },
+  "jest": {
+    "globalTeardown": "./tests/jest.teardown.js"
+  },
   "engines": {
     "node": ">=20.11.0"
   },
